@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scorecard — score a fight as you watch it</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700;900&family=Barlow:wght@400;500&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --arena:#101319;
+  --arena-2:#171B23;
+  --surface:#1E232C;
+  --line:#2C323D;
+  --red:#E23D2E;
+  --red-dim:#7A241C;
+  --blue:#2E6FE2;
+  --blue-dim:#1B3F7D;
+  --paper:#EDE7DA;
+  --paper-line:#C8BFAC;
+  --ink:#22201C;
+  --muted:#858C99;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--arena);
+  color:#E6E9EF;
+  font-family:'Barlow',system-ui,sans-serif;
+  min-height:100vh;
+  padding:24px 16px 64px;
+}
+.wrap{max-width:880px;margin:0 auto}
+
+/* ---- masthead ---- */
+.masthead{border-bottom:2px solid var(--line);padding-bottom:14px;margin-bottom:28px}
+.masthead h1{
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:900;font-size:clamp(38px,9vw,64px);
+  letter-spacing:-.02em;text-transform:uppercase;line-height:.92;
+}
+.masthead h1 em{font-style:normal;color:var(--muted)}
+.masthead p{color:var(--muted);font-size:14px;margin-top:8px;max-width:52ch}
+
+/* ---- setup ---- */
+.setup{
+  display:grid;grid-template-columns:1fr 1fr;gap:14px;
+  background:var(--arena-2);border:1px solid var(--line);
+  border-radius:4px;padding:18px;margin-bottom:24px;
+}
+.corner-field label{
+  font-family:'Barlow Condensed',sans-serif;font-weight:700;
+  text-transform:uppercase;letter-spacing:.12em;font-size:12px;
+  display:block;margin-bottom:6px;
+}
+.corner-field.red label{color:var(--red)}
+.corner-field.blue label{color:var(--blue)}
+.corner-field input{
+  width:100%;background:var(--surface);border:1px solid var(--line);
+  border-radius:3px;padding:10px 12px;color:#fff;
+  font-family:'Barlow Condensed',sans-serif;font-weight:700;
+  font-size:20px;text-transform:uppercase;letter-spacing:.02em;
+}
+.corner-field.red input:focus{outline:2px solid var(--red);outline-offset:1px}
+.corner-field.blue input:focus{outline:2px solid var(--blue);outline-offset:1px}
+.format{grid-column:1/-1;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.format span{
+  font-family:'Barlow Condensed',sans-serif;font-weight:700;
+  text-transform:uppercase;letter-spacing:.12em;font-size:12px;color:var(--muted);
+}
+.chip{
+  background:transparent;border:1px solid var(--line);color:var(--muted);
+  padding:6px 14px;border-radius:2px;cursor:pointer;
+  font-family:'Barlow Condensed',sans-serif;font-weight:700;
+  text-transform:uppercase;letter-spacing:.08em;font-size:13px;
+}
+.chip[aria-pressed="true"]{background:#E6E9EF;color:var(--arena);border-color:#E6E9EF}
+.chip:focus-visible{outline:2px solid #fff;outline-offset:2px}
+
+/* ---- live round ---- */
+.live{
+  background:var(--arena-2);border:1px solid var(--line);
+  border-radius:4px;padding:22px;margin-bottom:24px;
+}
+.round-head{
+  display:flex;justify-content:space-between;align-items:baseline;
+  margin-bottom:18px;gap:12px;flex-wrap:wrap;
+}
+.round-no{
+  font-family:'Barlow Condensed',sans-serif;font-weight:900;
+  text-transform:uppercase;letter-spacing:.06em;font-size:22px;
+}
+.clock{
+  font-family:'Roboto Mono',monospace;font-weight:700;
+  font-size:clamp(40px,11vw,68px);line-height:1;letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums;
+}
+.clock.is-running{color:#fff}
+.clock.is-idle{color:var(--muted)}
+
+/* opposed control meter — the signature */
+.meter{margin:20px 0 8px}
+.meter-track{
+  display:flex;height:46px;background:var(--surface);
+  border:1px solid var(--line);border-radius:3px;overflow:hidden;
+}
+.meter-fill{transition:width .12s linear}
+@media (prefers-reduced-motion:reduce){.meter-fill{transition:none}}
+.meter-fill.red{background:linear-gradient(90deg,var(--red-dim),var(--red))}
+.meter-fill.blue{background:linear-gradient(90deg,var(--blue),var(--blue-dim))}
+.meter-fill.red.is-active{box-shadow:inset 0 0 0 2px #fff}
+.meter-fill.blue.is-active{box-shadow:inset 0 0 0 2px #fff}
+.meter-labels{display:flex;justify-content:space-between;margin-top:8px;gap:12px}
+.meter-labels div{display:flex;flex-direction:column;gap:2px}
+.meter-labels .nm{
+  font-family:'Barlow Condensed',sans-serif;font-weight:900;
+  text-transform:uppercase;font-size:17px;letter-spacing:.02em;
+}
+.meter-labels .red .nm{color:var(--red)}
+.meter-labels .blue .nm{color:var(--blue)}
+.meter-labels .blue{text-align:right;align-items:flex-end}
+.meter-labels .tm{
+  font-family:'Roboto Mono',monospace;font-size:13px;color:var(--muted);
+  font-variant-numeric:tabular-nums;
+}
+
+.keys{
+  display:flex;gap:18px;flex-wrap:wrap;margin-top:16px;
+  padding-top:16px;border-top:1px solid var(--line);
+  font-size:13px;color:var(--muted);
+}
+kbd{
+  background:var(--surface);border:1px solid var(--line);border-bottom-width:2px;
+  border-radius:3px;padding:2px 7px;font-family:'Roboto Mono',monospace;
+  font-size:12px;color:#E6E9EF;
+}
+
+/* ---- scoring ---- */
+.score-prompt{margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}
+.score-prompt h2{
+  font-family:'Barlow Condensed',sans-serif;font-weight:900;
+  text-transform:uppercase;letter-spacing:.06em;font-size:16px;margin-bottom:4px;
+}
+.suggestion{font-size:13px;color:var(--muted);margin-bottom:14px;max-width:56ch}
+.suggestion b{color:#E6E9EF;font-weight:500}
+.score-btns{display:flex;gap:8px;flex-wrap:wrap}
+.sbtn{
+  background:var(--surface);border:1px solid var(--line);color:#E6E9EF;
+  padding:11px 16px;border-radius:3px;cursor:pointer;
+  font-family:'Roboto Mono',monospace;font-weight:700;font-size:14px;
+}
+.sbtn:hover{border-color:#4A5261}
+.sbtn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.sbtn.red{border-left:3px solid var(--red)}
+.sbtn.blue{border-left:3px solid var(--blue)}
+.sbtn.draw{border-left:3px solid var(--muted)}
+
+/* ---- paper scorecard ---- */
+.card{
+  background:var(--paper);color:var(--ink);
+  border-radius:3px;padding:24px;
+  box-shadow:0 18px 40px rgba(0,0,0,.5);
+}
+.card-head{
+  display:flex;justify-content:space-between;align-items:flex-end;
+  border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:2px;
+}
+.card-head h2{
+  font-family:'Barlow Condensed',sans-serif;font-weight:900;
+  text-transform:uppercase;letter-spacing:.06em;font-size:20px;
+}
+.card-head span{
+  font-family:'Roboto Mono',monospace;font-size:11px;
+  text-transform:uppercase;letter-spacing:.1em;color:#6B6558;
+}
+table{width:100%;border-collapse:collapse}
+th{
+  font-family:'Barlow Condensed',sans-serif;font-weight:700;
+  text-transform:uppercase;letter-spacing:.1em;font-size:12px;
+  color:#6B6558;text-align:center;padding:10px 6px;
+}
+th.rd{text-align:left;width:88px}
+td{
+  border-top:1px solid var(--paper-line);padding:11px 6px;text-align:center;
+  font-family:'Roboto Mono',monospace;font-size:19px;font-variant-numeric:tabular-nums;
+}
+td.rd{
+  text-align:left;font-family:'Barlow Condensed',sans-serif;
+  font-weight:700;text-transform:uppercase;font-size:15px;letter-spacing:.06em;
+}
+tr.pending td{color:#A79F8D}
+tr.current td.rd{color:var(--red)}
+td.win{font-weight:700}
+tfoot td{
+  border-top:2px solid var(--ink);font-weight:700;font-size:24px;padding-top:14px;
+}
+tfoot td.rd{font-size:15px}
+.verdict{
+  margin-top:18px;padding-top:16px;border-top:1px dashed var(--paper-line);
+  font-family:'Barlow Condensed',sans-serif;font-weight:900;
+  text-transform:uppercase;letter-spacing:.03em;font-size:clamp(20px,5vw,30px);
+  line-height:1.1;
+}
+.verdict.empty{
+  font-family:'Barlow',sans-serif;font-weight:400;text-transform:none;
+  letter-spacing:0;font-size:14px;color:#6B6558;
+}
+
+.footer-actions{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap}
+.ghost{
+  background:transparent;border:1px solid var(--line);color:var(--muted);
+  padding:9px 16px;border-radius:3px;cursor:pointer;
+  font-family:'Barlow Condensed',sans-serif;font-weight:700;
+  text-transform:uppercase;letter-spacing:.08em;font-size:13px;
+}
+.ghost:hover{color:#E6E9EF;border-color:#4A5261}
+.ghost:focus-visible{outline:2px solid #fff;outline-offset:2px}
+
+.note{margin-top:26px;font-size:12.5px;color:var(--muted);max-width:62ch;line-height:1.6}
+
+@media(max-width:620px){
+  .setup{grid-template-columns:1fr}
+  .keys{gap:10px;font-size:12px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <h1>Score the fight<br><em>while you watch it</em></h1>
+    <p>Hold a key while a fighter is in control. Score each round yourself under the
+       10-point must system, and see how your card reads at the final bell.</p>
+  </header>
+
+  <section class="setup">
+    <div class="corner-field red">
+      <label for="redName">Red corner</label>
+      <input id="redName" type="text" placeholder="Fighter name" maxlength="22" autocomplete="off">
+    </div>
+    <div class="corner-field blue">
+      <label for="blueName">Blue corner</label>
+      <input id="blueName" type="text" placeholder="Fighter name" maxlength="22" autocomplete="off">
+    </div>
+    <div class="format">
+      <span>Rounds</span>
+      <button class="chip" data-rounds="3" aria-pressed="true">3</button>
+      <button class="chip" data-rounds="5" aria-pressed="false">5</button>
+      <span style="margin-left:auto">Round length</span>
+      <button class="chip" data-len="300" aria-pressed="true">5:00</button>
+      <button class="chip" data-len="180" aria-pressed="false">3:00</button>
+    </div>
+  </section>
+
+  <section class="live">
+    <div class="round-head">
+      <div class="round-no" id="roundNo">Round 1</div>
+      <div class="clock is-idle" id="clock">5:00</div>
+    </div>
+
+    <div class="meter">
+      <div class="meter-track" role="img" aria-label="Control time split" id="meterTrack">
+        <div class="meter-fill red" id="fillRed" style="width:50%"></div>
+        <div class="meter-fill blue" id="fillBlue" style="width:50%"></div>
+      </div>
+      <div class="meter-labels">
+        <div class="red">
+          <span class="nm" id="lblRed">Red corner</span>
+          <span class="tm" id="ctrlRed">0:00 control</span>
+        </div>
+        <div class="blue">
+          <span class="nm" id="lblBlue">Blue corner</span>
+          <span class="tm" id="ctrlBlue">0:00 control</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="keys">
+      <span><kbd>Space</kbd> start / pause round</span>
+      <span><kbd>F</kbd> hold — red in control</span>
+      <span><kbd>J</kbd> hold — blue in control</span>
+    </div>
+
+    <div class="score-prompt" id="scorePrompt" hidden>
+      <h2>Score this round</h2>
+      <p class="suggestion" id="suggestion"></p>
+      <div class="score-btns" id="scoreBtns"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Official scorecard</h2>
+      <span id="cardMeta">Unofficial — your card</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th class="rd">Round</th>
+          <th id="thRed">Red</th>
+          <th id="thBlue">Blue</th>
+        </tr>
+      </thead>
+      <tbody id="cardBody"></tbody>
+      <tfoot>
+        <tr>
+          <td class="rd">Total</td>
+          <td id="totRed">—</td>
+          <td id="totBlue">—</td>
+        </tr>
+      </tfoot>
+    </table>
+    <div class="verdict empty" id="verdict">No rounds scored yet.</div>
+  </section>
+
+  <div class="footer-actions">
+    <button class="ghost" id="undoBtn">Undo last round</button>
+    <button class="ghost" id="resetBtn">New fight</button>
+  </div>
+
+  <p class="note">
+    Control time is one criterion among several — judges also weigh effective striking,
+    grappling, aggression and octagon control. The meter is a prompt for your memory,
+    not a verdict. You score the round.
+  </p>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var TICK = 100; // ms
+
+  var state = {
+    rounds: 3,
+    length: 300,
+    current: 0,          // index of round being fought
+    remaining: 300,
+    running: false,
+    awaitingScore: false,
+    redHeld: false,
+    blueHeld: false,
+    redControl: 0,       // seconds, current round
+    blueControl: 0,
+    cards: []            // [{red:10, blue:9, redControl, blueControl}]
+  };
+
+  var el = {};
+  ["redName","blueName","clock","roundNo","fillRed","fillBlue","lblRed","lblBlue",
+   "ctrlRed","ctrlBlue","scorePrompt","suggestion","scoreBtns","cardBody","totRed",
+   "totBlue","verdict","thRed","thBlue","undoBtn","resetBtn"].forEach(function(id){
+    el[id] = document.getElementById(id);
+  });
+
+  function redName(){ return el.redName.value.trim() || "Red corner"; }
+  function blueName(){ return el.blueName.value.trim() || "Blue corner"; }
+
+  function fmt(sec){
+    sec = Math.max(0, Math.round(sec));
+    var m = Math.floor(sec/60), s = sec%60;
+    return m + ":" + (s<10 ? "0"+s : s);
+  }
+
+  /* ---------- rendering ---------- */
+
+  function renderNames(){
+    el.lblRed.textContent  = redName();
+    el.lblBlue.textContent = blueName();
+    el.thRed.textContent   = redName();
+    el.thBlue.textContent  = blueName();
+    renderCard();
+  }
+
+  function renderClock(){
+    el.clock.textContent = fmt(state.remaining);
+    el.clock.className = "clock " + (state.running ? "is-running" : "is-idle");
+    el.roundNo.textContent = "Round " + Math.min(state.current+1, state.rounds);
+  }
+
+  function renderMeter(){
+    var total = state.redControl + state.blueControl;
+    var redPct = total > 0 ? (state.redControl/total)*100 : 50;
+    el.fillRed.style.width  = redPct + "%";
+    el.fillBlue.style.width = (100-redPct) + "%";
+    el.fillRed.classList.toggle("is-active", state.redHeld);
+    el.fillBlue.classList.toggle("is-active", state.blueHeld);
+    el.ctrlRed.textContent  = fmt(state.redControl) + " control";
+    el.ctrlBlue.textContent = fmt(state.blueControl) + " control";
+    el.fillRed.parentNode.setAttribute("aria-label",
+      "Control time: " + redName() + " " + fmt(state.redControl) +
+      ", " + blueName() + " " + fmt(state.blueControl));
+  }
+
+  function renderCard(){
+    var html = "";
+    for (var i=0; i<state.rounds; i++){
+      var c = state.cards[i];
+      var cls = c ? "" : (i === state.current ? "pending current" : "pending");
+      html += '<tr class="'+cls+'">';
+      html += '<td class="rd">Round '+(i+1)+'</td>';
+      if (c){
+        html += '<td class="'+(c.red>c.blue?"win":"")+'">'+c.red+'</td>';
+        html += '<td class="'+(c.blue>c.red?"win":"")+'">'+c.blue+'</td>';
+      } else {
+        html += '<td>—</td><td>—</td>';
+      }
+      html += '</tr>';
+    }
+    el.cardBody.innerHTML = html;
+
+    var scored = state.cards.filter(Boolean);
+    if (!scored.length){
+      el.totRed.textContent = "—";
+      el.totBlue.textContent = "—";
+      el.verdict.className = "verdict empty";
+      el.verdict.textContent = "No rounds scored yet.";
+      return;
+    }
+    var r = scored.reduce(function(a,c){return a+c.red;},0);
+    var b = scored.reduce(function(a,c){return a+c.blue;},0);
+    el.totRed.textContent = r;
+    el.totBlue.textContent = b;
+
+    if (scored.length < state.rounds){
+      el.verdict.className = "verdict empty";
+      el.verdict.textContent = scored.length + " of " + state.rounds +
+        " rounds scored — running card " + r + "–" + b + ".";
+    } else {
+      el.verdict.className = "verdict";
+      if (r > b)      el.verdict.textContent = redName()  + " wins " + r + "–" + b;
+      else if (b > r) el.verdict.textContent = blueName() + " wins " + b + "–" + r;
+      else            el.verdict.textContent = "Draw, " + r + "–" + b;
+    }
+  }
+
+  /* ---------- round clock ---------- */
+
+  setInterval(function(){
+    if (!state.running) return;
+    var dt = TICK/1000;
+    state.remaining -= dt;
+    if (state.redHeld)  state.redControl  += dt;
+    if (state.blueHeld) state.blueControl += dt;
+    if (state.remaining <= 0){
+      state.remaining = 0;
+      endRound();
+    }
+    renderClock();
+    renderMeter();
+  }, TICK);
+
+  function toggleClock(){
+    if (state.awaitingScore || state.current >= state.rounds) return;
+    state.running = !state.running;
+    if (!state.running){ state.redHeld = false; state.blueHeld = false; }
+    renderClock();
+    renderMeter();
+  }
+
+  function endRound(){
+    state.running = false;
+    state.redHeld = false;
+    state.blueHeld = false;
+    state.awaitingScore = true;
+    showScorePrompt();
+    renderClock();
+    renderMeter();
+  }
+
+  /* ---------- scoring ---------- */
+
+  // Control time is a memory aid, not a verdict. The thresholds below are
+  // deliberately conservative: a round only reads as 10-8 when one fighter
+  // held control for the large majority of a round that had real control time.
+  function suggest(){
+    var r = state.redControl, b = state.blueControl, total = r + b;
+    if (total < 10) return null;
+    var lead = Math.max(r,b), share = lead/total;
+    var leader = r > b ? "red" : "blue";
+    if (share >= 0.80 && total >= 60) return {score:"10-8", leader:leader, share:share};
+    if (share >= 0.55) return {score:"10-9", leader:leader, share:share};
+    return {score:"10-10", leader:null, share:share};
+  }
+
+  function showScorePrompt(){
+    var s = suggest();
+    if (!s){
+      el.suggestion.innerHTML = "No control time logged. Score it on what you saw.";
+    } else if (!s.leader){
+      el.suggestion.innerHTML = "Control was close to even (" +
+        Math.round(s.share*100) + "% to " + (100-Math.round(s.share*100)) + "%).";
+    } else {
+      var who = s.leader === "red" ? redName() : blueName();
+      el.suggestion.innerHTML = "<b>" + who + "</b> held control for " +
+        Math.round(s.share*100) + "% of the logged time — that often reads as <b>" +
+        s.score + "</b>.";
+    }
+
+    el.scoreBtns.innerHTML =
+      '<button class="sbtn red" data-r="10" data-b="9">10–9 '+redName()+'</button>' +
+      '<button class="sbtn blue" data-r="9" data-b="10">10–9 '+blueName()+'</button>' +
+      '<button class="sbtn red" data-r="10" data-b="8">10–8 '+redName()+'</button>' +
+      '<button class="sbtn blue" data-r="8" data-b="10">10–8 '+blueName()+'</button>' +
+      '<button class="sbtn draw" data-r="10" data-b="10">10–10</button>';
+    el.scorePrompt.hidden = false;
+    var first = el.scoreBtns.querySelector(".sbtn");
+    if (first) first.focus();
+  }
+
+  function scoreRound(r, b){
+    state.cards[state.current] = {
+      red: r, blue: b,
+      redControl: state.redControl, blueControl: state.blueControl
+    };
+    state.current++;
+    state.awaitingScore = false;
+    state.redControl = 0;
+    state.blueControl = 0;
+    state.remaining = state.length;
+    el.scorePrompt.hidden = true;
+    renderClock();
+    renderMeter();
+    renderCard();
+  }
+
+  el.scoreBtns.addEventListener("click", function(e){
+    var btn = e.target.closest(".sbtn");
+    if (!btn) return;
+    scoreRound(parseInt(btn.dataset.r,10), parseInt(btn.dataset.b,10));
+  });
+
+  /* ---------- controls ---------- */
+
+  document.addEventListener("keydown", function(e){
+    if (e.target.tagName === "INPUT") return;
+    var k = e.key.toLowerCase();
+    if (k === " " || e.code === "Space"){ e.preventDefault(); toggleClock(); return; }
+    if (!state.running) return;
+    if (k === "f" && !state.redHeld){  state.redHeld = true;  renderMeter(); }
+    if (k === "j" && !state.blueHeld){ state.blueHeld = true; renderMeter(); }
+  });
+
+  document.addEventListener("keyup", function(e){
+    var k = e.key.toLowerCase();
+    if (k === "f"){ state.redHeld = false;  renderMeter(); }
+    if (k === "j"){ state.blueHeld = false; renderMeter(); }
+  });
+
+  // Releasing focus (alt-tab mid-round) must not leave a key stuck down.
+  window.addEventListener("blur", function(){
+    state.redHeld = false; state.blueHeld = false; renderMeter();
+  });
+
+  el.redName.addEventListener("input", renderNames);
+  el.blueName.addEventListener("input", renderNames);
+
+  document.querySelectorAll(".chip").forEach(function(chip){
+    chip.addEventListener("click", function(){
+      var group = chip.dataset.rounds ? "rounds" : "len";
+      document.querySelectorAll('.chip[data-'+group+']').forEach(function(c){
+        c.setAttribute("aria-pressed", c === chip ? "true" : "false");
+      });
+      if (group === "rounds"){
+        state.rounds = parseInt(chip.dataset.rounds,10);
+        state.cards = state.cards.slice(0, state.rounds);
+      } else {
+        state.length = parseInt(chip.dataset.len,10);
+        if (!state.running && !state.awaitingScore) state.remaining = state.length;
+      }
+      renderClock();
+      renderCard();
+    });
+  });
+
+  el.undoBtn.addEventListener("click", function(){
+    if (state.current === 0 && !state.awaitingScore) return;
+    if (state.awaitingScore){
+      state.awaitingScore = false;
+      el.scorePrompt.hidden = true;
+    } else {
+      state.current--;
+      state.cards[state.current] = null;
+    }
+    state.running = false;
+    state.redControl = 0;
+    state.blueControl = 0;
+    state.remaining = state.length;
+    renderClock();
+    renderMeter();
+    renderCard();
+  });
+
+  el.resetBtn.addEventListener("click", function(){
+    state.current = 0;
+    state.cards = [];
+    state.running = false;
+    state.awaitingScore = false;
+    state.redControl = 0;
+    state.blueControl = 0;
+    state.remaining = state.length;
+    el.scorePrompt.hidden = true;
+    renderClock();
+    renderMeter();
+    renderCard();
+  });
+
+  renderNames();
+  renderClock();
+  renderMeter();
+  renderCard();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+# Visual Studio / .NET leftovers from the original version
+.vs/
+bin/
+obj/
+*.dll
+*.pdb
+*.user
+*.suo
+packages/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
