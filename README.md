@@ -2,7 +2,6 @@
 
 A single-page tool for keeping your own judge's scorecard during a fight. Hold a key while a fighter is in control, score each round under the 10-point must system, and see how your card reads at the final bell.
 
-**[Live demo →](https://tomeroso.github.io/ufc-scorecard/)**
 
 <!-- TODO: replace the URL above with your real Pages URL once deployed.
      TODO: add a screenshot — the scorecard mid-fight with a few rounds filled in. -->
